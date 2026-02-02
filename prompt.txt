@@ -1,0 +1,18 @@
+Design and implement a parameterized Reorder Buffer (ROB).
+
+The ROB must:
+- Accept instructions in program order
+- Allow out-of-order completion
+- Commit instructions strictly in program order
+
+You must implement the RTL in SystemVerilog.
+
+The design should support:
+- Single dispatch per cycle
+- Single completion per cycle
+- Single commit per cycle
+
+The ROB must correctly handle pointer wraparound, backpressure on commit,
+and simultaneous dispatch, completion, and commit.
+
+A provided testbench will validate correctness.
