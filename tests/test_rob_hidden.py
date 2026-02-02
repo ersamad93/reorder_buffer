@@ -7,7 +7,7 @@ from cocotb.triggers import RisingEdge, FallingEdge, Timer
 @cocotb.test()
 async def test_reset(dut):
     """Test that reset puts ROB in correct initial state."""
-    clock = Clock(dut.clk, 10, units="ns")
+    clock = Clock(dut.clk, 10, unit="ns")
     cocotb.start_soon(clock.start())
 
     dut.rst_n.value = 0
@@ -28,7 +28,7 @@ async def test_reset(dut):
 @cocotb.test()
 async def test_single_dispatch_complete_commit(dut):
     """Test single entry: dispatch -> complete -> commit."""
-    clock = Clock(dut.clk, 10, units="ns")
+    clock = Clock(dut.clk, 10, unit="ns")
     cocotb.start_soon(clock.start())
 
     dut.rst_n.value = 0
@@ -72,7 +72,7 @@ async def test_single_dispatch_complete_commit(dut):
 @cocotb.test()
 async def test_multiple_dispatches_in_order(dut):
     """Test multiple dispatches and in-order commit."""
-    clock = Clock(dut.clk, 10, units="ns")
+    clock = Clock(dut.clk, 10, unit="ns")
     cocotb.start_soon(clock.start())
 
     dut.rst_n.value = 0
@@ -114,7 +114,7 @@ async def test_multiple_dispatches_in_order(dut):
 @cocotb.test()
 async def test_out_of_order_completion(dut):
     """Test out-of-order completion: dispatch 0,1,2 then complete 2,0,1 - commit must be 0,1,2."""
-    clock = Clock(dut.clk, 10, units="ns")
+    clock = Clock(dut.clk, 10, unit="ns")
     cocotb.start_soon(clock.start())
 
     dut.rst_n.value = 0
@@ -155,7 +155,7 @@ async def test_out_of_order_completion(dut):
 @cocotb.test()
 async def test_full_rob_disp_ready(dut):
     """Test that disp_ready goes low when ROB is full (DEPTH=8)."""
-    clock = Clock(dut.clk, 10, units="ns")
+    clock = Clock(dut.clk, 10, unit="ns")
     cocotb.start_soon(clock.start())
 
     dut.rst_n.value = 0
