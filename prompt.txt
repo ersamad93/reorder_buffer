@@ -3,3 +3,5 @@ Design and implement a parameterized Reorder Buffer (ROB).
 The ROB must:
 - Allow out-of-order completion
 - Commit instructions strictly in program order
+
+You must implement the RTL in SystemVerilog.
