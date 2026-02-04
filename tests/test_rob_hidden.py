@@ -1,7 +1,9 @@
 """Hidden tests for the ROB (Reorder Buffer) module."""
 import cocotb
 from cocotb.clock import Clock
-from cocotb.triggers import RisingEdge, FallingEdge, Timer
+from cocotb.triggers import Timer, RisingEdge, ReadOnly
+import random
+from collections import deque
 
 
 @cocotb.test()
@@ -178,6 +180,84 @@ async def test_full_rob_disp_ready(dut):
     # ROB should be full, disp_ready = 0
     assert dut.disp_ready.value == 0, f"Expected disp_ready=0 when full, got {dut.disp_ready.value}"
 
+class ROBScoreboard:
+    """Golden model to track expected retirement."""
+    def __init__(self):
+        self.expected_queue = deque()
+
+    def dispatch(self, rob_id, dest_reg):
+        self.expected_queue.append({"id": rob_id, "reg": dest_reg, "done": False})
+
+    def writeback(self, rob_id):
+        for entry in self.expected_queue:
+            if entry["id"] == rob_id:
+                entry["done"] = True
+
+    def retire(self):
+        if self.expected_queue and self.expected_queue[0]["done"]:
+            return self.expected_queue.popleft()
+        return None
+
+@cocotb.test()
+async def test_rob_extensive(dut):
+    """Extensive test: Random Dispatch, OOO Writeback, and Retirement."""
+    
+    # Setup Clock
+    cocotb.start_soon(Clock(dut.clk, 10, units="ns").start())
+    scoreboard = ROBScoreboard()
+
+    # Reset
+    dut.rst.value = 1
+    dut.dispatch_en.value = 0
+    dut.wb_en.value = 0
+    await RisingEdge(dut.clk)
+    dut.rst.value = 0
+    await RisingEdge(dut.clk)
+
+    # --- Test 1: Stressing OOO Writeback ---
+    # 1. Fill the ROB partially
+    dispatched_ids = []
+    for i in range(8):
+        await RisingEdge(dut.clk)
+        if not dut.full.value:
+            dut.dispatch_en.value = 1
+            dut.dest_reg.value = i
+            # Assume RTL returns the allocated rob_id
+            rob_id = int(dut.allocated_id.value) 
+            scoreboard.dispatch(rob_id, i)
+            dispatched_ids.append(rob_id)
+    
+    dut.dispatch_en.value = 0
+    await RisingEdge(dut.clk)
+
+    # 2. Writeback in REVERSE order (Stress OOO)
+    random.shuffle(dispatched_ids)
+    for rid in dispatched_ids:
+        dut.wb_en.value = 1
+        dut.wb_rob_id.value = rid
+        dut.wb_data.value = random.randint(0, 0xFFFFFFFF)
+        scoreboard.writeback(rid)
+        await RisingEdge(dut.clk)
+    
+    dut.wb_en.value = 0
+
+    # 3. Verify Retirement order
+    # The ROB should retire them sequentially based on the original dispatch
+    for i in range(8):
+        while dut.retire_en.value != 1:
+            await RisingEdge(dut.clk)
+        
+        expected = scoreboard.retire()
+        assert int(dut.retire_reg.value) == expected["reg"], f"Wrong retirement order at index {i}"
+        await RisingEdge(dut.clk)
+
+    # --- Test 2: Flush Mechanism ---
+    dut.dispatch_en.value = 1
+    await RisingEdge(dut.clk)
+    dut.flush.value = 1
+    await RisingEdge(dut.clk)
+    dut.flush.value = 0
+    assert dut.empty.value == 1, "ROB not empty after flush!"
 
 # REQUIRED: Pytest wrapper function
 def test_rob_hidden_runner():
