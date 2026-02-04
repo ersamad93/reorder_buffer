@@ -1,3 +1,4 @@
+`timescale 1ns/1ps
 module rob #(
     parameter DEPTH = 8,
     parameter ADDR_WIDTH = $clog2(DEPTH)
